@@ -76,7 +76,6 @@ const login = asyncWrapper(async (req, res, next) => {
 });
 
 const checkPin = asyncWrapper(async (req, res, next) => {
-  console.log(req.body);
   const { pin } = req.body;
   const user = await User.findById(req.currentUser.id);
   const pass = await bcrypt.compare(pin, user.pin);
@@ -106,11 +105,13 @@ const fastLogin = asyncWrapper(async (req, res, next) => {
 const deleteUser = asyncWrapper(async (req, res, next) => {
   const user = await User.findById(req.currentUser.id);
   if (user) {
-    const cycle = await Cycle.findOne({ userId: user_id });
-    await User.deleteOne(user);
-    await Cycle.findByIdAndDelete(cycle._id);
-    await Transaction.deleteMany({ cycleId: cycle._id });
-    await Spending.deleteMany({ cycleId: cycle._id });
+    const cycle = await Cycle.findOne({ userId: user._id }); // Fixed user_id reference here
+    await User.deleteOne({ _id: user._id });
+    if (cycle) {
+      await Cycle.findByIdAndDelete(cycle._id);
+      await Transaction.deleteMany({ cycleId: cycle._id });
+      await Spending.deleteMany({ cycleId: cycle._id });
+    }
     res.json({ status: httpStatusText.SUCCESS, message: "Deleted" });
   } else {
     const error = appError.create("User Not Here", 401, httpStatusText.FAIL);
