@@ -13,7 +13,7 @@ const getUser = asyncWrapper(async (req, res, next) => {
 });
 
 const register = asyncWrapper(async (req, res, next) => {
-  const { userName, email, password, age, pin } = req.body;
+  const { userName, email, password, pin } = req.body;
   const check = await User.findOne({ email });
   if (password.length < 5) {
     const error = appError.create(
@@ -30,7 +30,6 @@ const register = asyncWrapper(async (req, res, next) => {
       userName,
       email,
       password: hashed,
-      age,
       pin: hashedPin,
     });
     const token = await generateToken({
@@ -77,6 +76,7 @@ const login = asyncWrapper(async (req, res, next) => {
 });
 
 const checkPin = asyncWrapper(async (req, res, next) => {
+  console.log(req.body);
   const { pin } = req.body;
   const user = await User.findById(req.currentUser.id);
   const pass = await bcrypt.compare(pin, user.pin);
