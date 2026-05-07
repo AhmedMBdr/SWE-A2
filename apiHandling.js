@@ -10,7 +10,11 @@ async function apiRegister(userName, email, password, pin) {
       password,
       pin,
     }),
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    });
 }
 
 async function apiLogin(email, password) {
@@ -23,7 +27,11 @@ async function apiLogin(email, password) {
       email,
       password,
     }),
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    });
 }
 
 async function apiGetUser() {
@@ -31,7 +39,11 @@ async function apiGetUser() {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    });
 }
 
 async function apiCheckPin(pin) {
@@ -44,7 +56,11 @@ async function apiCheckPin(pin) {
     body: JSON.stringify({
       pin: pin,
     }),
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    });
 }
 
 async function apiFastLogin() {
@@ -54,65 +70,9 @@ async function apiFastLogin() {
       "Content-Type": "application/json",
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-  }).then((res) => res.json());
-}
-
-// --- CYCLE APIs ---
-
-async function apiGetCycle() {
-  return fetch("http://localhost:3000/api/cycle", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  }).then((res) => res.json());
-}
-
-async function apiInitCycle(totalAmount, cycleName, startDate, endDate) {
-  return fetch("http://localhost:3000/api/cycle", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    body: JSON.stringify({ totalAmount, cycleName, startDate, endDate }),
-  }).then((res) => res.json());
-}
-
-async function apiDeleteCycle(cycleId) {
-  return fetch(`http://localhost:3000/api/cycle/${cycleId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  }).then((res) => res.json());
-}
-
-// --- TRANSACTION APIs ---
-
-async function apiGetTransactions() {
-  return fetch("http://localhost:3000/api/transaction", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  }).then((res) => res.json());
-}
-
-async function apiAddTransaction(amount, category, note) {
-  return fetch("http://localhost:3000/api/transaction", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    body: JSON.stringify({ amount, category, note }),
-  }).then((res) => res.json());
-}
-
-async function apiDeleteTransaction(transId) {
-  return fetch(`http://localhost:3000/api/transaction/${transId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    });
 }

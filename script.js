@@ -2,44 +2,6 @@ const navItems = document.querySelectorAll(".topbar-nav .nav-item");
 const screens = document.querySelectorAll(".screen");
 const topbar = document.getElementById("topbar");
 
-let appData = {
-  cycle: null,
-  expenses: [],
-};
-
-async function syncData() {
-  try {
-    const cycleRes = await apiGetCycle();
-    if (cycleRes && cycleRes.status === "success" && cycleRes.data) {
-      appData.cycle = {
-        _id: cycleRes.data._id,
-        allowance: cycleRes.data.totalAmount,
-        cycleName: cycleRes.data.cycleName,
-        startDate: cycleRes.data.startDate,
-        endDate: cycleRes.data.endDate,
-      };
-      
-      const transRes = await apiGetTransactions();
-      if (transRes && transRes.status === "success" && transRes.data) {
-        appData.expenses = transRes.data.map(t => ({
-          id: t._id,
-          amount: t.amount,
-          category: t.category,
-          note: t.note,
-          date: t.timestamp
-        })).sort((a, b) => new Date(b.date) - new Date(a.date));
-      } else {
-        appData.expenses = [];
-      }
-    } else {
-      appData.cycle = null;
-      appData.expenses = [];
-    }
-  } catch (error) {
-    console.error("Data Sync Error:", error);
-  }
-}
-
 function navigateTo(targetId) {
   const navContainer = document.querySelector(".topbar-nav");
   if (targetId === "setup") {
@@ -97,7 +59,6 @@ document.getElementById("go-to-login").addEventListener("click", (e) => {
 document.getElementById("switch-account").addEventListener("click", (e) => {
   e.preventDefault();
   localStorage.removeItem("budget_username");
-  localStorage.removeItem("token");
   hideAppChrome();
   navigateTo("login-screen");
 });
@@ -110,7 +71,6 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
   const pin = document.getElementById("signup-pin").value;
   const data = await apiRegister(userName, email, password, pin);
   if (data.status == "success") {
-    localStorage.setItem("token", data.data);
     e.target.reset();
     showAppChrome(userName);
     alert("Account created! Let's set up your first budget cycle.");
@@ -130,7 +90,6 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     const user = await apiGetUser();
     document.getElementById("welcome-username").textContent =
       user.data.userName;
-    localStorage.setItem("budget_username", user.data.userName);
     e.target.reset();
     navigateTo("lock-screen");
   } else {
@@ -143,19 +102,14 @@ document
   .addEventListener("submit", async (e) => {
     e.preventDefault();
     const pin = document.getElementById("unlock-pin").value;
+    console.log(pin);
     const data = await apiCheckPin(pin);
+    console.log(data);
     if (data.status == "success") {
       e.target.reset();
       const user = await apiGetUser();
       showAppChrome(user.data.userName);
-      
-      await syncData();
-      
-      if (appData.cycle) {
-        navigateTo("dashboard");
-      } else {
-        navigateTo("setup");
-      }
+      navigateTo("dashboard");
     } else {
       alert(data.message);
     }
@@ -163,7 +117,6 @@ document
 
 document.getElementById("logout-btn").addEventListener("click", () => {
   localStorage.removeItem("budget_username");
-  localStorage.removeItem("token");
   hideAppChrome();
   navigateTo("login-screen");
 });
@@ -178,13 +131,16 @@ document.querySelectorAll(".cat-btn").forEach((btn) => {
   });
 });
 
+let appData = JSON.parse(localStorage.getItem("masroofy_data")) || {
+  cycle: null,
+  expenses: [],
+};
 const warningOverlay = document.getElementById("warning-modal-overlay");
 const warningOkBtn = document.getElementById("warning-modal-ok");
 
 warningOkBtn.addEventListener("click", () => {
   warningOverlay.classList.add("hidden");
 });
-
 function showWarningModal(type, data) {
   const icon = document.getElementById("warning-modal-icon");
   const title = document.getElementById("warning-modal-title");
@@ -227,6 +183,10 @@ function showWarningModal(type, data) {
   warningOverlay.classList.remove("hidden");
 }
 
+function saveData() {
+  localStorage.setItem("masroofy_data", JSON.stringify(appData));
+}
+
 function getCategoryIcon(category) {
   const icons = {
     food: "🍕",
@@ -261,7 +221,7 @@ startDateInput.addEventListener("change", () => {
   }
 });
 
-document.getElementById("setup-form").addEventListener("submit", async (e) => {
+document.getElementById("setup-form").addEventListener("submit", (e) => {
   e.preventDefault();
 
   const start = new Date(startDateInput.value);
@@ -271,23 +231,23 @@ document.getElementById("setup-form").addEventListener("submit", async (e) => {
     alert("Invalid cycle: The end date must be after the start date.");
     return;
   }
-  
-  const amount = parseFloat(document.getElementById("allowance").value);
-  const name = document.getElementById("cycle-name").value || "My Budget";
-  
-  const res = await apiInitCycle(amount, name, startDateInput.value, endDateInput.value);
-  
-  if(res.status === "success") {
-    await syncData();
-    alert("Cycle started!");
-    e.target.reset();
-    navigateTo("dashboard");
-  } else {
-    alert(res.message);
-  }
+
+  appData.cycle = {
+    allowance: parseFloat(document.getElementById("allowance").value),
+    cycleName: document.getElementById("cycle-name").value || "My Budget",
+    startDate: startDateInput.value,
+    endDate: endDateInput.value,
+  };
+
+  appData.expenses = [];
+  saveData();
+
+  alert("Cycle started!");
+  e.target.reset();
+  navigateTo("dashboard");
 });
 
-document.getElementById("log-form").addEventListener("submit", async (e) => {
+document.getElementById("log-form").addEventListener("submit", (e) => {
   e.preventDefault();
 
   if (!appData.cycle) {
@@ -296,23 +256,26 @@ document.getElementById("log-form").addEventListener("submit", async (e) => {
     return;
   }
 
-  const amount = parseFloat(document.getElementById("expense-amount").value);
-  const category = document.getElementById("expense-category").value;
-  const note = document.getElementById("expense-note").value || "Expense";
+  const newExpense = {
+    id: Date.now().toString(),
+    amount: parseFloat(document.getElementById("expense-amount").value),
+    category: document.getElementById("expense-category").value,
+    note: document.getElementById("expense-note").value || "Expense",
+    date: new Date().toISOString(),
+  };
 
-  const res = await apiAddTransaction(amount, category, note);
-  
-  if (res.status === "success") {
-    await syncData();
+  appData.expenses.push(newExpense);
+  appData.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  saveData();
+  if (appData.cycle) {
     const modalShownKey = `masroofy_modal_shown_${appData.cycle.startDate}`;
     sessionStorage.removeItem(modalShownKey);
-
-    alert("Expense logged!");
-    e.target.reset();
-    navigateTo("dashboard");
-  } else {
-    alert(res.message);
   }
+
+  alert("Expense logged!");
+  e.target.reset();
+  navigateTo("dashboard");
 });
 
 function loadDashboard() {
@@ -574,15 +537,11 @@ function loadHistory() {
   });
 }
 
-window.deleteTransaction = async function (id) {
+window.deleteTransaction = function (id) {
   if (confirm("Delete this expense?")) {
-    const res = await apiDeleteTransaction(id);
-    if(res.status === "success") {
-       await syncData();
-       loadHistory();
-    } else {
-      alert(res.message);
-    }
+    appData.expenses = appData.expenses.filter((exp) => exp.id !== id);
+    saveData();
+    loadHistory();
   }
 };
 
@@ -654,12 +613,14 @@ document.getElementById("update-warning-btn").addEventListener("click", () => {
   }
 });
 
-document.getElementById("reset-cycle-btn").addEventListener("click", async () => {
-  if (confirm("Are you sure you want to delete the active cycle and ALL expenses?")) {
-    if(appData.cycle && appData.cycle._id) {
-       await apiDeleteCycle(appData.cycle._id);
-    }
-    await syncData();
+document.getElementById("reset-cycle-btn").addEventListener("click", () => {
+  if (
+    confirm(
+      "Are you sure you want to delete the active cycle and ALL expenses?",
+    )
+  ) {
+    appData = { cycle: null, expenses: [] };
+    saveData();
     alert("Cycle reset!");
     navigateTo("setup");
   }
@@ -667,7 +628,6 @@ document.getElementById("reset-cycle-btn").addEventListener("click", async () =>
 
 // Fast login
 async function fk() {
-  if (!localStorage.getItem("token")) return;
   const data = await apiFastLogin();
   if (data.status == "success") {
     localStorage.setItem("token", data.data);
