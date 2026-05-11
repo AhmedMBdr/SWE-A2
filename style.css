@@ -232,7 +232,7 @@ input::placeholder { color: #555; }
 h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
 header { margin-bottom: 26px; }
 
-/* ── Warning Modal Overlay ── */
+/* Warning Modal Overlay */
 .warning-modal-overlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0, 0, 0, 0.65);
