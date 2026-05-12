@@ -906,6 +906,53 @@ document
       navigateTo("setup");
     }
   });
+// ─────────────────────────────────────────────
+// changing password modal 
+// Opens an overlay asking for old and new password.
+// ─────────────────────────────────────────────
+const changePwdBtn = document.getElementById("change-password-btn");
+const pwdModalOverlay = document.getElementById("password-modal-overlay");
+const cancelPwdBtn = document.getElementById("cancel-password-btn");
+const changePwdForm = document.getElementById("change-password-form");
+const pwdErrorMsg = document.getElementById("password-error-msg"); // <-- Grab the error text element
+
+// 1. Open the modal
+changePwdBtn.addEventListener("click", () => {
+  pwdModalOverlay.classList.remove("hidden");
+});
+
+// 2. Close the modal (Cancel)
+cancelPwdBtn.addEventListener("click", () => {
+  pwdModalOverlay.classList.add("hidden");
+  changePwdForm.reset(); // Clear the inputs
+  pwdErrorMsg.style.display = "none"; // Hide the error text so it's clean next time
+});
+
+// 3. Handle the form submission
+changePwdForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  // Hide any old error messages when trying again
+  pwdErrorMsg.style.display = "none";
+  const oldPwd = document.getElementById("old-password").value;
+  const newPwd = document.getElementById("new-password").value;
+
+  // call the api here 
+  
+  // ---> PLACEHOLDER SIMULATION <---
+  const res = { status: "error", message: "Incorrect old password." }; 
+  // --------------------------------
+  
+  if (res.status === "success") {
+    // Hide modal and clear form on success
+    pwdModalOverlay.classList.add("hidden");
+    changePwdForm.reset();
+    pwdErrorMsg.style.display = "none";
+  } else {
+    // Show error inside the modal instead of an alert!
+    pwdErrorMsg.textContent = res.message || "Failed to change password.";
+    pwdErrorMsg.style.display = "block";
+  }
+});
 
 // ─────────────────────────────────────────────
 // AUTO LOGIN (Fast Login)
