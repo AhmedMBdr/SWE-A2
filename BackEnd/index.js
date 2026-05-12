@@ -9,6 +9,7 @@ const verifyToken = require("./middlewares/verifyToken");
 const userController = require("./controllers/userController");
 const cycleController = require("./controllers/cycleController");
 const transactionController = require("./controllers/transactionController");
+const alertController = require("./controllers/alertController");
 const { verify } = require("jsonwebtoken");
 
 app.use(cors());
@@ -34,6 +35,7 @@ app.post("/api/users/fastLogin", verifyToken, userController.fastLogin);
 app.delete("/api/users", verifyToken, userController.deleteUser);
 app.patch("/api/users", verifyToken, userController.editUser);
 app.post("/api/users/pin", verifyToken, userController.checkPin);
+app.patch("/api/users/password", verifyToken, userController.changePassword);
 
 // Cycle APIs
 app.get("/api/cycle", verifyToken, cycleController.getCycle);
@@ -53,6 +55,10 @@ app.patch(
   verifyToken,
   transactionController.editTransaction,
 );
+
+// Alert APIS
+app.get("/api/alert", verifyToken, alertController.getAlert);
+app.patch("/api/alert", verifyToken, alertController.changeAlert);
 
 // Error Handeling
 app.use((req, res) => {

@@ -2,6 +2,7 @@ let User = require("../models/userSchema");
 let Cycle = require("../models/cycleSchema");
 let Transaction = require("../models/transactionSchema");
 let Spending = require("../models/spendingSchema");
+let Alert = require("../models/alertSchema");
 const appError = require("../utils/appError");
 const httpStatusText = require("../utils/httpStatusText");
 const asyncWrapper = require("../middlewares/asyncWrapper");
@@ -38,6 +39,10 @@ const register = asyncWrapper(async (req, res, next) => {
       id: user._id,
     });
     await user.save();
+    const alert = new Alert({
+      userId: user._id,
+    });
+    await alert.save();
     res.json({ status: httpStatusText.SUCCESS, data: token });
   } else {
     const error = appError.create(
@@ -76,7 +81,6 @@ const login = asyncWrapper(async (req, res, next) => {
 });
 
 const checkPin = asyncWrapper(async (req, res, next) => {
-  console.log(req.body);
   const { pin } = req.body;
   const user = await User.findById(req.currentUser.id);
   const pass = await bcrypt.compare(pin, user.pin);
@@ -135,6 +139,29 @@ const editUser = asyncWrapper(async (req, res, next) => {
   }
 });
 
+const changePassword = asyncWrapper(async (req, res, next) => {
+  const { newPassword, oldPassword } = req.body;
+  const user = await User.findById(req.currentUser.id);
+  if (user) {
+    const check = await bcrypt.compare(oldPassword, user.password);
+    if (check) {
+      user.password = await bcrypt.hash(newPassword, 10);
+      await user.save();
+      res.json({ status: httpStatusText.SUCCESS, message: "Password changed" });
+    } else {
+      const error = appError.create(
+        "Password is wrong",
+        401,
+        httpStatusText.FAIL,
+      );
+      return next(error);
+    }
+  } else {
+    const error = appError.create("User Not Here", 401, httpStatusText.FAIL);
+    return next(error);
+  }
+});
+
 module.exports = {
   getUser,
   register,
@@ -143,4 +170,5 @@ module.exports = {
   editUser,
   fastLogin,
   checkPin,
+  changePassword,
 };

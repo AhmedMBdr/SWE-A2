@@ -474,7 +474,7 @@ document.getElementById("log-form").addEventListener("submit", async (e) => {
 // The main screen of the app. Calculates all
 // budget stats and updates every UI element.
 // ─────────────────────────────────────────────
-function loadDashboard() {
+async function loadDashboard() {
   // Nothing to show if no cycle is set up yet
   if (!appData.cycle) return;
 
@@ -595,7 +595,8 @@ function loadDashboard() {
 
   // Show a warning banner if the user has used more than the configured threshold
   // (default is 80%, but the user can change it in Settings)
-  const thresholdPercent = localStorage.getItem("budget_warning_percent") || 80;
+  const res = await apiGetAlert();
+  const thresholdPercent = res.data;
   const banner = document.getElementById("warning-banner");
   const usedPercent = Math.min(
     (totalSpent / appData.cycle.allowance) * 100,
@@ -863,30 +864,43 @@ document
     if (newUsername.trim()) {
       const userEdit = { userName: newUsername };
       const data = await apiEditUser(userEdit);
-      document.getElementById("nav-username").textContent = newUsername;
-      document.getElementById("welcome-username").textContent = newUsername;
+      if (data.status == "success") {
+        localStorage.setItem("token", data.data);
+        document.getElementById("nav-username").textContent = newUsername;
+        document.getElementById("welcome-username").textContent = newUsername;
 
-      // If no avatar is set, show the first 2 letters of the username as a fallback
-      if (!localStorage.getItem("budget_avatar")) {
-        document.getElementById("nav-avatar").textContent = newUsername
-          .slice(0, 2)
-          .toUpperCase();
+        // If no avatar is set, show the first 2 letters of the username as a fallback
+        if (!localStorage.getItem("budget_avatar")) {
+          document.getElementById("nav-avatar").textContent = newUsername
+            .slice(0, 2)
+            .toUpperCase();
+        }
+        alert("Username updated successfully!");
+        document.getElementById("settings-username").value = "";
+      } else {
+        alert(data.message);
       }
-      alert("Username updated successfully!");
-      document.getElementById("settings-username").value = "";
     }
   });
 
 // Update the percentage threshold at which the warning banner appears
 // (e.g. set to 70 to get warned when you've used 70% of your budget)
-document.getElementById("update-warning-btn").addEventListener("click", () => {
-  const newPercent = document.getElementById("settings-warning-percent").value;
-  if (newPercent && newPercent > 0 && newPercent <= 100) {
-    localStorage.setItem("budget_warning_percent", newPercent);
-    alert(`Warning threshold set to ${newPercent}%`);
-    loadDashboard(); // Refresh the dashboard so the banner updates immediately
-  }
-});
+document
+  .getElementById("update-warning-btn")
+  .addEventListener("click", async () => {
+    const newPercent = document.getElementById(
+      "settings-warning-percent",
+    ).value;
+    if (newPercent && newPercent > 0 && newPercent <= 100) {
+      const data = await apiChangeAlert(newPercent);
+      if (data.status == "success") {
+        alert(`Warning threshold set to ${newPercent}%`);
+        loadDashboard();
+      } else {
+        alert(data.message);
+      }
+    }
+  });
 
 // Nuclear option — wipes the entire budget cycle from the database.
 // The user must confirm before anything is deleted.
@@ -907,7 +921,7 @@ document
     }
   });
 // ─────────────────────────────────────────────
-// changing password modal 
+// changing password modal
 // Opens an overlay asking for old and new password.
 // ─────────────────────────────────────────────
 const changePwdBtn = document.getElementById("change-password-btn");
@@ -933,15 +947,13 @@ changePwdForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   // Hide any old error messages when trying again
   pwdErrorMsg.style.display = "none";
-  const oldPwd = document.getElementById("old-password").value;
-  const newPwd = document.getElementById("new-password").value;
+  const oldPassword = document.getElementById("old-password").value;
+  const newPassword = document.getElementById("new-password").value;
 
-  // call the api here 
-  
-  // ---> PLACEHOLDER SIMULATION <---
-  const res = { status: "error", message: "Incorrect old password." }; 
-  // --------------------------------
-  
+  // call the api here
+
+  const res = await apiChangePassword(oldPassword, newPassword);
+
   if (res.status === "success") {
     // Hide modal and clear form on success
     pwdModalOverlay.classList.add("hidden");
