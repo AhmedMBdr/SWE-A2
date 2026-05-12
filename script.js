@@ -239,7 +239,10 @@ document
       showAppChrome(user.data.userName);
 
       // Fetch user's cycle and expenses from the database
-      await syncData();
+     await syncData();
+      
+      // NEW: Check if the cycle we just fetched is expired, and renew if needed!
+      await checkAndAutoRenewCycle();
 
       if (appData.cycle) {
         navigateTo("dashboard");
@@ -397,16 +400,29 @@ startDateInput.addEventListener("change", () => {
 document.getElementById("setup-form").addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  // Grab the new error message element and hide it initially
+  const errorMsg = document.getElementById("setup-error-msg");
+  errorMsg.style.display = "none";
+
   const start = new Date(startDateInput.value);
   const end = new Date(endDateInput.value);
 
   // Extra safety check — end must be after start
   if (end < start) {
-    alert("Invalid cycle: The end date must be after the start date.");
+    errorMsg.textContent = "Invalid cycle: The end date must be after the start date.";
+    errorMsg.style.display = "block";
     return;
   }
 
   const amount = parseFloat(document.getElementById("allowance").value);
+  
+  // Extra safety check — amount cannot be negative
+  if (amount < 0) {
+    errorMsg.textContent = "Invalid cycle: Total allowance cannot be negative.";
+    errorMsg.style.display = "block";
+    return;
+  }
+
   const name = document.getElementById("cycle-name").value || "My Budget";
 
   // Call the backend to save the new budget cycle
@@ -420,11 +436,13 @@ document.getElementById("setup-form").addEventListener("submit", async (e) => {
   if (res.status === "success") {
     // Pull the fresh cycle configuration into the app state
     await syncData();
-    alert("Cycle started!");
     e.target.reset();
+    errorMsg.style.display = "none";
     navigateTo("dashboard");
   } else {
-    alert(res.message);
+    // Show backend API errors directly in the form
+    errorMsg.textContent = res.message || "Failed to start the budget cycle.";
+    errorMsg.style.display = "block";
   }
 });
 
@@ -965,7 +983,58 @@ changePwdForm.addEventListener("submit", async (e) => {
     pwdErrorMsg.style.display = "block";
   }
 });
+// ─────────────────────────────────────────────
+// auto renew fo the cycle
+// Checks if the current cycle is expired. If yes,
+// starts a new one with the exact same duration and allowance.
+// ─────────────────────────────────────────────
+async function checkAndAutoRenewCycle() {
+  if (!appData.cycle) return;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Midnight today
+
+  const endDate = new Date(appData.cycle.endDate);
+  endDate.setHours(23, 59, 59, 999); // Very end of the expiration day
+
+  // Check if the cycle's end date has passed
+  if (endDate < today) {
+    // 1. Calculate the duration of the old cycle in milliseconds
+    const oldStart = new Date(appData.cycle.startDate);
+    const oldEnd = new Date(appData.cycle.endDate);
+    const durationInMs = oldEnd.getTime() - oldStart.getTime();
+
+    // 2. Set new dates (Start today, end 'duration' days from today)
+    const newStart = new Date();
+    const newEnd = new Date(newStart.getTime() + durationInMs);
+
+    // Helper to format date safely in local time (YYYY-MM-DD)
+    const formatDate = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    // 3. Call the backend to create the new cycle
+    const res = await apiInitCycle(
+      appData.cycle.allowance,
+      appData.cycle.cycleName,
+      formatDate(newStart),
+      formatDate(newEnd)
+    );
+
+    if (res.status === "success") {
+      // 4. Sync the new cycle to the app and notify the user
+      await syncData();
+      
+      // Clear any old warning flags so they can trigger properly for the new cycle
+      sessionStorage.removeItem(`masroofy_modal_shown_${appData.cycle.startDate}`);
+      
+      alert("Your previous cycle ended. A new cycle has been started automatically!");
+    }
+  }
+}
 // ─────────────────────────────────────────────
 // AUTO LOGIN (Fast Login)
 // On every page load, this tries to silently

@@ -579,6 +579,7 @@
                     type="number"
                     id="allowance"
                     placeholder="e.g. 3000"
+                    min="0"
                     required
                   />
                 </div>
@@ -599,8 +600,11 @@
                   <input type="date" id="end-date" required />
                 </div>
               </div>
+
+              <p id="setup-error-msg" style="color: var(--danger-color); font-size: 13px; margin-top: 8px; text-align: center; display: none;"></p>
+
               <button type="submit" class="btn-primary" style="margin-top: 8px">
-                Start cycle →
+                Start cycle
               </button>
             </form>
           </div>
