@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────
-// navigation setting up 
+// navigation setting up
 // Grab all the nav buttons and screen sections
 // from the HTML so we can switch between them.
 // ─────────────────────────────────────────────
@@ -19,7 +19,7 @@ let appData = {
 
 // ─────────────────────────────────────────────
 // DATA SYNCING
-// Fetches the latest cycle and transactions from the 
+// Fetches the latest cycle and transactions from the
 // database and updates the local appData state.
 // ─────────────────────────────────────────────
 async function syncData() {
@@ -33,16 +33,18 @@ async function syncData() {
         startDate: cycleRes.data.startDate,
         endDate: cycleRes.data.endDate,
       };
-      
+
       const transRes = await apiGetTransactions();
       if (transRes && transRes.status === "success" && transRes.data) {
-        appData.expenses = transRes.data.map(t => ({
-          id: t._id,
-          amount: t.amount,
-          category: t.category,
-          note: t.note,
-          date: t.timestamp
-        })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        appData.expenses = transRes.data
+          .map((t) => ({
+            id: t._id,
+            amount: t.amount,
+            category: t.category,
+            note: t.note,
+            date: t.timestamp,
+          }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
       } else {
         appData.expenses = [];
       }
@@ -84,22 +86,21 @@ function navigateTo(targetId) {
     if (screen.id === targetId) screen.classList.remove("hidden");
   });
 
-  // Each screen has its own loader function . call the one you want . 
+  // Each screen has its own loader function . call the one you want .
   if (targetId === "dashboard") loadDashboard();
   if (targetId === "history") loadHistory();
   if (targetId === "settings") loadSettings();
 }
 
 // linking each nav button so clicking it navigates
-// to the screen linked with it 
+// to the screen linked with it
 navItems.forEach((btn) => {
   if (btn.dataset.target)
     btn.addEventListener("click", () => navigateTo(btn.dataset.target));
 });
 
-
 // ─────────────────────────────────────────────
-// check if the user is already logged in. 
+// check if the user is already logged in.
 // When the page loads, check if we remember
 // who was logged in last time.
 // ─────────────────────────────────────────────
@@ -129,7 +130,6 @@ function hideAppChrome() {
   topbar.classList.add("hidden");
 }
 
-
 // ─────────────────────────────────────────────
 // switch between the screens
 // Simple links that take the user between the
@@ -158,7 +158,6 @@ document.getElementById("switch-account").addEventListener("click", (e) => {
   navigateTo("login-screen");
 });
 
-
 // ─────────────────────────────────────────────
 // SIGNUP FORM
 // When the user submits the signup form,
@@ -180,14 +179,13 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
     e.target.reset();
     showAppChrome(userName);
     alert("Account created! Let's set up your first budget cycle.");
-    
+
     // Send the new user straight to the budget setup screen
     navigateTo("setup");
   } else {
     alert(data.message);
   }
 });
-
 
 // ─────────────────────────────────────────────
 // LOGIN FORM
@@ -208,7 +206,8 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
 
     // Fetch the full user profile to get their display name
     const user = await apiGetUser();
-    document.getElementById("welcome-username").textContent = user.data.userName;
+    document.getElementById("welcome-username").textContent =
+      user.data.userName;
     localStorage.setItem("budget_username", user.data.userName);
 
     e.target.reset();
@@ -219,28 +218,29 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   }
 });
 
-
 // ─────────────────────────────────────────────
 // PIN UNLOCK FORM
 // The user sees this after login or on returning.
 // They enter their PIN to actually get into the app.
 // ─────────────────────────────────────────────
-document.getElementById("pin-login-form").addEventListener("submit", async (e) => {
+document
+  .getElementById("pin-login-form")
+  .addEventListener("submit", async (e) => {
     e.preventDefault();
     const pin = document.getElementById("unlock-pin").value;
-    
+
     const data = await apiCheckPin(pin);
 
     if (data.status == "success") {
       e.target.reset();
-      
+
       // Re-fetch the user to make sure we have fresh data
       const user = await apiGetUser();
       showAppChrome(user.data.userName);
-      
+
       // Fetch user's cycle and expenses from the database
       await syncData();
-      
+
       if (appData.cycle) {
         navigateTo("dashboard");
       } else {
@@ -250,7 +250,6 @@ document.getElementById("pin-login-form").addEventListener("submit", async (e) =
       alert(data.message);
     }
   });
-
 
 // ─────────────────────────────────────────────
 // LOGOUT BUTTON
@@ -264,7 +263,6 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   navigateTo("login-screen");
 });
 
-
 // ─────────────────────────────────────────────
 // CATEGORY BUTTONS (Expense form)
 // When the user picks a spending category
@@ -274,7 +272,9 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 document.querySelectorAll(".cat-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     // Deselect all category buttons first
-    document.querySelectorAll(".cat-btn").forEach((b) => b.classList.remove("selected"));
+    document
+      .querySelectorAll(".cat-btn")
+      .forEach((b) => b.classList.remove("selected"));
 
     // Highlight the one they clicked
     btn.classList.add("selected");
@@ -283,7 +283,6 @@ document.querySelectorAll(".cat-btn").forEach((btn) => {
     document.getElementById("expense-category").value = btn.dataset.value;
   });
 });
-
 
 // ─────────────────────────────────────────────
 // WARNING MODAL
@@ -376,7 +375,6 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("en-US", options);
 }
 
-
 // ─────────────────────────────────────────────
 // BUDGET CYCLE SETUP FORM
 // The user fills this in once to define their
@@ -407,14 +405,19 @@ document.getElementById("setup-form").addEventListener("submit", async (e) => {
     alert("Invalid cycle: The end date must be after the start date.");
     return;
   }
-  
+
   const amount = parseFloat(document.getElementById("allowance").value);
   const name = document.getElementById("cycle-name").value || "My Budget";
-  
+
   // Call the backend to save the new budget cycle
-  const res = await apiInitCycle(amount, name, startDateInput.value, endDateInput.value);
-  
-  if(res.status === "success") {
+  const res = await apiInitCycle(
+    amount,
+    name,
+    startDateInput.value,
+    endDateInput.value,
+  );
+
+  if (res.status === "success") {
     // Pull the fresh cycle configuration into the app state
     await syncData();
     alert("Cycle started!");
@@ -424,7 +427,6 @@ document.getElementById("setup-form").addEventListener("submit", async (e) => {
     alert(res.message);
   }
 });
-
 
 // ─────────────────────────────────────────────
 // LOG EXPENSE FORM
@@ -444,14 +446,14 @@ document.getElementById("log-form").addEventListener("submit", async (e) => {
   const amount = parseFloat(document.getElementById("expense-amount").value);
   const category = document.getElementById("expense-category").value;
   const note = document.getElementById("expense-note").value || "Expense";
-  
+
   // Send the new expense object to the database
   const res = await apiAddTransaction(amount, category, note);
-  
+
   if (res.status === "success") {
     // Refresh the local state from the database
     await syncData();
-    
+
     // Reset the overspend modal flags so warnings can show again
     // after this new expense is added
     if (appData.cycle) {
@@ -467,7 +469,6 @@ document.getElementById("log-form").addEventListener("submit", async (e) => {
   }
 });
 
-
 // ─────────────────────────────────────────────
 // DASHBOARD LOADER
 // The main screen of the app. Calculates all
@@ -477,7 +478,8 @@ function loadDashboard() {
   // Nothing to show if no cycle is set up yet
   if (!appData.cycle) return;
 
-  document.getElementById("dashboard-cycle-title").textContent = appData.cycle.cycleName || "Active Budget";
+  document.getElementById("dashboard-cycle-title").textContent =
+    appData.cycle.cycleName || "Active Budget";
 
   // Set up time boundaries for today and the cycle end
   const today = new Date();
@@ -513,13 +515,17 @@ function loadDashboard() {
   const spentBeforeToday = totalSpent - spentToday;
   const remainingBeforeToday = appData.cycle.allowance - spentBeforeToday;
 
-  const dailyTarget = Math.max(0, remainingBeforeToday / daysLeftIncludingToday);
+  const dailyTarget = Math.max(
+    0,
+    remainingBeforeToday / daysLeftIncludingToday,
+  );
   const dailyRemaining = dailyTarget - spentToday;
   const isDailyOverspent = dailyRemaining < 0;
 
   // Calculate how full each progress bar should be (0 to 1)
   const dailyPct = dailyTarget > 0 ? spentToday / dailyTarget : 1;
-  const totalPct = appData.cycle.allowance > 0 ? totalSpent / appData.cycle.allowance : 1;
+  const totalPct =
+    appData.cycle.allowance > 0 ? totalSpent / appData.cycle.allowance : 1;
 
   // Returns a color between green and red based on how much has been spent.
   // 0% spent = green, 100% spent = red
@@ -530,8 +536,12 @@ function loadDashboard() {
   }
 
   // If overspent, use the danger (red) color; otherwise use the gradient
-  const dailyColor = isDailyOverspent ? "var(--danger-color)" : getGradientColor(dailyPct);
-  const totalColor = isTotalOverspent ? "var(--danger-color)" : getGradientColor(totalPct);
+  const dailyColor = isDailyOverspent
+    ? "var(--danger-color)"
+    : getGradientColor(dailyPct);
+  const totalColor = isTotalOverspent
+    ? "var(--danger-color)"
+    : getGradientColor(totalPct);
 
   // Apply overspent styling to the daily stat card if needed
   const statDaily = document.getElementById("stat-daily");
@@ -542,7 +552,8 @@ function loadDashboard() {
   }
 
   // Update the daily limit display and progress bar
-  document.getElementById("daily-limit-target").textContent = `Limit: ${Math.floor(dailyTarget)} EGP`;
+  document.getElementById("daily-limit-target").textContent =
+    `Limit: ${Math.floor(dailyTarget)} EGP`;
   const dailyLimitEl = document.getElementById("daily-limit-display");
   dailyLimitEl.textContent = `${Math.floor(dailyRemaining)} EGP`;
   dailyLimitEl.style.color = dailyColor;
@@ -569,18 +580,27 @@ function loadDashboard() {
   balanceBar.style.backgroundColor = totalColor;
 
   // Update the allowance label and days remaining counter
-  document.getElementById("allowance-display").textContent = `of ${appData.cycle.allowance} EGP`;
-  document.getElementById("days-remaining-display").textContent = daysLeftIncludingToday;
+  document.getElementById("allowance-display").textContent =
+    `of ${appData.cycle.allowance} EGP`;
+  document.getElementById("days-remaining-display").textContent =
+    daysLeftIncludingToday;
 
   // Show the cycle end date in a friendly format
-  const endFormat = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  document.getElementById("cycle-dates-display").textContent = `cycle ends ${endFormat}`;
+  const endFormat = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  document.getElementById("cycle-dates-display").textContent =
+    `cycle ends ${endFormat}`;
 
   // Show a warning banner if the user has used more than the configured threshold
   // (default is 80%, but the user can change it in Settings)
   const thresholdPercent = localStorage.getItem("budget_warning_percent") || 80;
   const banner = document.getElementById("warning-banner");
-  const usedPercent = Math.min((totalSpent / appData.cycle.allowance) * 100, 100);
+  const usedPercent = Math.min(
+    (totalSpent / appData.cycle.allowance) * 100,
+    100,
+  );
 
   if (usedPercent >= thresholdPercent) {
     banner.textContent = `You have used ${usedPercent.toFixed(0)}% of your allowance.`;
@@ -588,7 +608,7 @@ function loadDashboard() {
   } else {
     banner.classList.add("hidden");
   }
-  
+
   // Check if we've already shown the overspend modal this session.
   // We only show each warning once per session to avoid spamming the user.
   const modalShownKey = `masroofy_modal_shown_${appData.cycle.startDate}`;
@@ -624,7 +644,8 @@ function loadDashboard() {
   } else {
     appData.expenses.forEach((exp) => {
       // Only show the note if it's something meaningful (not the default "Expense")
-      const noteHtml = exp.note && exp.note !== "Expense" ? ` · ${exp.note}` : "";
+      const noteHtml =
+        exp.note && exp.note !== "Expense" ? ` · ${exp.note}` : "";
       recentList.innerHTML += `
         <div class="tx-item">
           <div class="tx-icon">${getCategoryIcon(exp.category)}</div>
@@ -651,11 +672,17 @@ function loadDashboard() {
 function renderDynamicDonut() {
   const radius = 85;
   const circumference = 2 * Math.PI * radius;
-  
+
   // Start all category totals at zero
   const totals = {
-    food: 0, transport: 0, entertainment: 0, education: 0,
-    health: 0, shopping: 0, cafe: 0, other: 0,
+    food: 0,
+    transport: 0,
+    entertainment: 0,
+    education: 0,
+    health: 0,
+    shopping: 0,
+    cafe: 0,
+    other: 0,
   };
   let grandTotal = 0;
 
@@ -700,7 +727,10 @@ function renderDynamicDonut() {
       const dashLength = (amount / grandTotal) * circumference;
       const gapLength = circumference - dashLength;
 
-      circle.setAttribute("stroke-dasharray", `${dashLength.toFixed(1)} ${gapLength.toFixed(1)}`);
+      circle.setAttribute(
+        "stroke-dasharray",
+        `${dashLength.toFixed(1)} ${gapLength.toFixed(1)}`,
+      );
       circle.setAttribute("stroke-dashoffset", currentOffset.toFixed(1));
       currentOffset -= dashLength;
 
@@ -708,7 +738,10 @@ function renderDynamicDonut() {
       const percent = ((amount / grandTotal) * 100).toFixed(1);
       let titleElement = circle.querySelector("title");
       if (!titleElement) {
-        titleElement = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        titleElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "title",
+        );
         circle.appendChild(titleElement);
       }
       const catName = category.charAt(0).toUpperCase() + category.slice(1);
@@ -754,9 +787,9 @@ function loadHistory() {
 window.deleteTransaction = async function (id) {
   if (confirm("Delete this expense?")) {
     const res = await apiDeleteTransaction(id);
-    if(res.status === "success") {
-       await syncData(); // Re-fetch the cleaned list from database
-       loadHistory(); // Re-render the list after deletion
+    if (res.status === "success") {
+      await syncData(); // Re-fetch the cleaned list from database
+      loadHistory(); // Re-render the list after deletion
     } else {
       alert(res.message);
     }
@@ -775,8 +808,14 @@ function loadSettings() {
   if (appData.cycle) {
     // Show the active cycle's name, date range, and allowance
     nameEl.textContent = appData.cycle.cycleName || "Active Budget";
-    const start = new Date(appData.cycle.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const end = new Date(appData.cycle.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const start = new Date(appData.cycle.startDate).toLocaleDateString(
+      "en-US",
+      { month: "short", day: "numeric" },
+    );
+    const end = new Date(appData.cycle.endDate).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
 
     detailsEl.textContent = `${start} → ${end} · ${appData.cycle.allowance} EGP`;
     badgeEl.style.display = "inline-block";
@@ -794,7 +833,9 @@ function loadSettings() {
 // It's stored as base64 in localStorage and
 // shown in the top navigation bar.
 // ─────────────────────────────────────────────
-document.getElementById("avatar-upload").addEventListener("change", function (e) {
+document
+  .getElementById("avatar-upload")
+  .addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -815,21 +856,26 @@ document.getElementById("avatar-upload").addEventListener("change", function (e)
 // ─────────────────────────────────────────────
 
 // Update the display name shown in the nav bar
-document.getElementById("update-username-btn").addEventListener("click", () => {
-  const newUsername = document.getElementById("settings-username").value;
-  if (newUsername.trim()) {
-    localStorage.setItem("budget_username", newUsername);
-    document.getElementById("nav-username").textContent = newUsername;
-    document.getElementById("welcome-username").textContent = newUsername;
+document
+  .getElementById("update-username-btn")
+  .addEventListener("click", async () => {
+    const newUsername = document.getElementById("settings-username").value;
+    if (newUsername.trim()) {
+      const userEdit = { userName: newUsername };
+      const data = await apiEditUser(userEdit);
+      document.getElementById("nav-username").textContent = newUsername;
+      document.getElementById("welcome-username").textContent = newUsername;
 
-    // If no avatar is set, show the first 2 letters of the username as a fallback
-    if (!localStorage.getItem("budget_avatar")) {
-      document.getElementById("nav-avatar").textContent = newUsername.slice(0, 2).toUpperCase();
+      // If no avatar is set, show the first 2 letters of the username as a fallback
+      if (!localStorage.getItem("budget_avatar")) {
+        document.getElementById("nav-avatar").textContent = newUsername
+          .slice(0, 2)
+          .toUpperCase();
+      }
+      alert("Username updated successfully!");
+      document.getElementById("settings-username").value = "";
     }
-    alert("Username updated successfully!");
-    document.getElementById("settings-username").value = "";
-  }
-});
+  });
 
 // Update the percentage threshold at which the warning banner appears
 // (e.g. set to 70 to get warned when you've used 70% of your budget)
@@ -844,16 +890,22 @@ document.getElementById("update-warning-btn").addEventListener("click", () => {
 
 // Nuclear option — wipes the entire budget cycle from the database.
 // The user must confirm before anything is deleted.
-document.getElementById("reset-cycle-btn").addEventListener("click", async () => {
-  if (confirm("Are you sure you want to delete the active cycle and ALL expenses?")) {
-    if(appData.cycle && appData.cycle._id) {
-       await apiDeleteCycle(appData.cycle._id);
+document
+  .getElementById("reset-cycle-btn")
+  .addEventListener("click", async () => {
+    if (
+      confirm(
+        "Are you sure you want to delete the active cycle and ALL expenses?",
+      )
+    ) {
+      if (appData.cycle && appData.cycle._id) {
+        await apiDeleteCycle(appData.cycle._id);
+      }
+      await syncData(); // Sync the now-empty state
+      alert("Cycle reset!");
+      navigateTo("setup");
     }
-    await syncData(); // Sync the now-empty state
-    alert("Cycle reset!");
-    navigateTo("setup");
-  }
-});
+  });
 
 // ─────────────────────────────────────────────
 // AUTO LOGIN (Fast Login)
@@ -862,14 +914,17 @@ document.getElementById("reset-cycle-btn").addEventListener("click", async () =>
 // If it works, the user lands on the lock screen
 // instead of the full login page.
 // ─────────────────────────────────────────────
-async function fk() {
+async function def() {
+  const navContainer = document.querySelector("#topbar");
+  navContainer.classList.add("hidden");
   if (!localStorage.getItem("token")) return;
   const data = await apiFastLogin();
   if (data.status == "success") {
     localStorage.setItem("token", data.data);
     const user = await apiGetUser();
-    document.getElementById("welcome-username").textContent = user.data.userName;
+    document.getElementById("welcome-username").textContent =
+      user.data.userName;
     navigateTo("lock-screen");
   }
 }
-fk();
+def();
