@@ -99,31 +99,24 @@ navItems.forEach((btn) => {
     btn.addEventListener("click", () => navigateTo(btn.dataset.target));
 });
 
-// ─────────────────────────────────────────────
-// check if the user is already logged in.
-// When the page loads, check if we remember
-// who was logged in last time.
-// ─────────────────────────────────────────────
-const rememberedUser = localStorage.getItem("budget_username");
-
-if (rememberedUser) {
-  // We know who this is — show their name and send them
-  // to the PIN lock screen instead of the full login
-  document.getElementById("welcome-username").textContent = rememberedUser;
-  showAppChrome(rememberedUser);
-  navigateTo("lock-screen");
-} else {
-  // Nobody remembered — show the login screen
-  navigateTo("login-screen");
-}
-
 // Shows the top navigation bar and sets the username display.
 // Called after any successful login or unlock.
 function showAppChrome(username) {
   topbar.classList.remove("hidden");
   document.getElementById("nav-username").textContent = username;
 }
+function setData(user) {
+  topbar.classList.remove("hidden");
 
+  document.getElementById("nav-username").textContent = user.data.userName;
+  const avatarUrl = `http://localhost:3000/uploads/${user.data.avatar}`;
+  let img = document.querySelector("#nav-avatar");
+  if (user.data.avatar == "#") {
+    img.textContent = newUsername.slice(0, 2).toUpperCase();
+  } else {
+    img.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  }
+}
 // Hides the top navigation bar.
 // Called when the user logs out or switches accounts.
 function hideAppChrome() {
@@ -236,7 +229,7 @@ document
 
       // Re-fetch the user to make sure we have fresh data
       const user = await apiGetUser();
-      showAppChrome(user.data.userName);
+      setData(user);
 
       // Fetch user's cycle and expenses from the database
       await syncData();
@@ -853,27 +846,53 @@ function loadSettings() {
 // It's stored as base64 in localStorage and
 // shown in the top navigation bar.
 // ─────────────────────────────────────────────
-document
-  .getElementById("avatar-upload")
-  .addEventListener("change", function (e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        const base64Image = event.target.result;
-        // Save the image and update the nav avatar immediately
-        localStorage.setItem("budget_avatar", base64Image);
-        document.getElementById("nav-avatar").innerHTML =
-          `<img src="${base64Image}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        alert("Profile picture updated!");
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+// document
+//   .getElementById("avatar-upload")
+//   .addEventListener("change", function (e) {
+//     const file = e.target.files[0];
+//     if (file) {
+//       const reader = new FileReader();
+//       reader.onload = function (event) {
+//         const base64Image = event.target.result;
+//         // Save the image and update the nav avatar immediately
+//         document.getElementById("nav-avatar").innerHTML =
+//           `<img src="${base64Image}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+//         alert("Profile picture updated!");
+//       };
+//       reader.readAsDataURL(file);
+//     }
+//   });
 
 // ─────────────────────────────────────────────
 // SETTINGS ACTIONS
 // ─────────────────────────────────────────────
+// Upload New Image
+const uploadBtn = document.querySelector("#avatar-upload");
+uploadBtn.addEventListener("change", async (event) => {
+  const files = event.target.files;
+  if (files && files.length > 0) {
+    const file = files[0];
+    const reader = new FileReader();
+    if (file.type.split("/")[0] == "image") {
+      let img = document.getElementById("nav-avatar");
+      reader.onload = async function (e) {
+        img.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        alert("Profile picture updated!");
+        const user = await apiGetUser();
+        const data = {
+          avatar: file,
+          userName: user.data.userName,
+        };
+        await apiEditUser(data);
+      };
+      // Read the image file as a data URL (Base64 encoded string)
+      reader.readAsDataURL(file);
+    } else {
+      uploadBtn.value = "";
+      alert("Plz Enter Valid Image");
+    }
+  }
+});
 
 // Update the display name shown in the nav bar
 document
@@ -881,15 +900,15 @@ document
   .addEventListener("click", async () => {
     const newUsername = document.getElementById("settings-username").value;
     if (newUsername.trim()) {
-      const userEdit = { userName: newUsername };
+      const user = await apiGetUser();
+      const userEdit = { userName: newUsername, avatar: user.data.avatar };
       const data = await apiEditUser(userEdit);
       if (data.status == "success") {
         localStorage.setItem("token", data.data);
         document.getElementById("nav-username").textContent = newUsername;
         document.getElementById("welcome-username").textContent = newUsername;
-
         // If no avatar is set, show the first 2 letters of the username as a fallback
-        if (!localStorage.getItem("budget_avatar")) {
+        if (user.avatar == "#") {
           document.getElementById("nav-avatar").textContent = newUsername
             .slice(0, 2)
             .toUpperCase();
@@ -1057,6 +1076,9 @@ async function def() {
     const user = await apiGetUser();
     document.getElementById("welcome-username").textContent =
       user.data.userName;
+    const avatarUrl = `http://localhost:3000/uploads/${user.data.avatar}`;
+    navContainer.querySelector("#nav-avatar").innerHTML =
+      `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
     navigateTo("lock-screen");
   }
 }

@@ -33,12 +33,13 @@ const register = asyncWrapper(async (req, res, next) => {
       password: hashed,
       pin: hashedPin,
     });
+    await user.save();
     const token = await generateToken({
       userName: user.userName,
       email: user.email,
       id: user._id,
+      avatar: user.avatar,
     });
-    await user.save();
     const alert = new Alert({
       userId: user._id,
     });
@@ -64,6 +65,7 @@ const login = asyncWrapper(async (req, res, next) => {
         userName: user.userName,
         email: user.email,
         id: user._id,
+        avatar: user.avatar,
       });
       res.json({ status: httpStatusText.SUCCESS, data: token });
     } else if (user) {
@@ -99,6 +101,7 @@ const fastLogin = asyncWrapper(async (req, res, next) => {
       userName: user.userName,
       email: user.email,
       id: user._id,
+      avatar: user.avatar,
     });
     res.json({ status: httpStatusText.SUCCESS, data: token });
   } else {
@@ -125,16 +128,25 @@ const deleteUser = asyncWrapper(async (req, res, next) => {
 const editUser = asyncWrapper(async (req, res, next) => {
   let user = await User.findById(req.currentUser.id);
   if (user) {
+    if (req.file != undefined) {
+      req.currentUser.avatar = req.file.filename;
+      user.avatar = req.file.filename;
+    } else {
+      delete req.body["avatar"];
+    }
     Object.assign(user, req.body);
+    Object.assign(req.currentUser, req.body);
+
     const token = await generateToken({
       userName: user.userName,
       email: user.email,
       id: user._id,
+      avatar: user.avatar,
     });
     await user.save();
     res.json({ status: httpStatusText.SUCCESS, data: token });
   } else {
-    const error = appError.create("User Not Here", 401, httpStatusText.FAIL);
+    const error = appError.create("User Not Here", 400, httpStatusText.FAIL);
     return next(error);
   }
 });

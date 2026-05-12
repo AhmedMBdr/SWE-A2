@@ -57,17 +57,27 @@ async function apiFastLogin() {
     },
   }).then((res) => res.json());
 }
-async function apiEditUser(dataEdited) {
+
+async function apiEditUser(data) {
+  const formData = new FormData();
+  formData.append("userName", data.userName);
+  if (data.avatar instanceof File) {
+    formData.append("avatar", data.avatar);
+  }
+
   return fetch("http://localhost:3000/api/users", {
     method: "PATCH",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-    body: JSON.stringify(dataEdited),
+    body: formData,
   })
     .then((res) => res.json())
-    .then((data) => data);
+    .then((data) => {
+      console.log(data);
+      localStorage.setItem("token", data.data);
+      return data;
+    });
 }
 
 async function apiChangePassword(oldPassword, newPassword) {
