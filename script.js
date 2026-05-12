@@ -239,8 +239,8 @@ document
       showAppChrome(user.data.userName);
 
       // Fetch user's cycle and expenses from the database
-     await syncData();
-      
+      await syncData();
+
       // NEW: Check if the cycle we just fetched is expired, and renew if needed!
       await checkAndAutoRenewCycle();
 
@@ -409,16 +409,17 @@ document.getElementById("setup-form").addEventListener("submit", async (e) => {
 
   // Extra safety check — end must be after start
   if (end < start) {
-    errorMsg.textContent = "Invalid cycle: The end date must be after the start date.";
+    errorMsg.textContent =
+      "Invalid cycle: The end date must be after the start date.";
     errorMsg.style.display = "block";
     return;
   }
 
   const amount = parseFloat(document.getElementById("allowance").value);
-  
+
   // Extra safety check — amount cannot be negative
-  if (amount < 0) {
-    errorMsg.textContent = "Invalid cycle: Total allowance cannot be negative.";
+  if (amount <= 0) {
+    errorMsg.textContent = "Invalid cycle: Total allowance cannot <= 0";
     errorMsg.style.display = "block";
     return;
   }
@@ -990,20 +991,19 @@ changePwdForm.addEventListener("submit", async (e) => {
 // ─────────────────────────────────────────────
 async function checkAndAutoRenewCycle() {
   if (!appData.cycle) return;
-
+  const cycle = (await apiGetCycle()).data;
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Midnight today
-
-  const endDate = new Date(); // extract enddate here 
+  const endDate = new Date(cycle.endDate); // extract enddate here
   endDate.setHours(23, 59, 59, 999); // Very end of the expiration day
 
   // Check if the cycle's end date has passed
   if (endDate < today) {
+    console.log("here");
     // 1. Calculate the duration of the old cycle in milliseconds
-    const oldStart = new Date();//need getting the new startdate from the api
-    const oldEnd = new Date();// need getting the old enddate from the api
+    const oldStart = new Date(cycle.startDate); //need getting the new startdate from the api
+    const oldEnd = new Date(cycle.endDate); // need getting the old enddate from the api
     const durationInMs = oldEnd.getTime() - oldStart.getTime();
-
     // 2. Set new dates (Start today, end 'duration' days from today)
     const newStart = new Date();
     const newEnd = new Date(newStart.getTime() + durationInMs);
@@ -1015,20 +1015,28 @@ async function checkAndAutoRenewCycle() {
       const day = String(d.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     };
-
-
+    const res = await apiInitCycle(
+      cycle.totalAmount,
+      cycle.cycleName,
+      newStart,
+      newEnd,
+    );
     if (res.status === "success") {
       // 4. Sync the new cycle to the app
+      await apiDeleteCycle(cycle._id);
       await syncData();
-      
       // Clear any old warning flags so they can trigger properly for the new cycle
-      sessionStorage.removeItem(`masroofy_modal_shown_${appData.cycle.startDate}`);
-      
+      sessionStorage.removeItem(
+        `masroofy_modal_shown_${appData.cycle.startDate}`,
+      );
+
       // NEW: Force the screen to redraw with the fresh dates and amounts!
       loadDashboard();
       loadSettings();
-      
-      alert("Your previous cycle ended. A new cycle has been started automatically!");
+
+      alert(
+        "Your previous cycle ended. A new cycle has been started automatically!",
+      );
     }
   }
 }
