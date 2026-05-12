@@ -994,14 +994,14 @@ async function checkAndAutoRenewCycle() {
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Midnight today
 
-  const endDate = new Date(appData.cycle.endDate);
+  const endDate = new Date(); // extract enddate here 
   endDate.setHours(23, 59, 59, 999); // Very end of the expiration day
 
   // Check if the cycle's end date has passed
   if (endDate < today) {
     // 1. Calculate the duration of the old cycle in milliseconds
-    const oldStart = new Date(appData.cycle.startDate);
-    const oldEnd = new Date(appData.cycle.endDate);
+    const oldStart = new Date();//need getting the new startdate from the api
+    const oldEnd = new Date();// need getting the old enddate from the api
     const durationInMs = oldEnd.getTime() - oldStart.getTime();
 
     // 2. Set new dates (Start today, end 'duration' days from today)
@@ -1016,20 +1016,17 @@ async function checkAndAutoRenewCycle() {
       return `${year}-${month}-${day}`;
     };
 
-    // 3. Call the backend to create the new cycle
-    const res = await apiInitCycle(
-      appData.cycle.allowance,
-      appData.cycle.cycleName,
-      formatDate(newStart),
-      formatDate(newEnd)
-    );
 
     if (res.status === "success") {
-      // 4. Sync the new cycle to the app and notify the user
+      // 4. Sync the new cycle to the app
       await syncData();
       
       // Clear any old warning flags so they can trigger properly for the new cycle
       sessionStorage.removeItem(`masroofy_modal_shown_${appData.cycle.startDate}`);
+      
+      // NEW: Force the screen to redraw with the fresh dates and amounts!
+      loadDashboard();
+      loadSettings();
       
       alert("Your previous cycle ended. A new cycle has been started automatically!");
     }
